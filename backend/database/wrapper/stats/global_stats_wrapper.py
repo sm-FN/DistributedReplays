@@ -134,7 +134,7 @@ class GlobalStatWrapper(SharedStatsWrapper):
                     return global_stats, global_stds
             if is_local_dev():
                 rank_index = 0
-                stats = self.get_global_stats(session, with_rank=False)
+                stats = self.get_global_stats(session, with_rank=False)[1]
                 global_stats = [stats[stat.get_field_name()][rank_index]['mean'] for stat in stat_list]
                 global_stds = [stats[stat.get_field_name()][rank_index]['std'] for stat in stat_list]
                 return global_stats, global_stds
