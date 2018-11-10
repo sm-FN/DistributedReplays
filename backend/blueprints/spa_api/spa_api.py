@@ -19,6 +19,7 @@ from backend.database.wrapper.chart.chart_data import convert_to_csv
 from backend.database.wrapper.stats.player_stat_wrapper import TimeUnit
 from backend.tasks import celery_tasks
 from backend.tasks.utils import get_queue_length
+from backend.utils.checks import is_local_dev
 from .errors.errors import CalculatedError, MissingQueryParams
 from .service_layers.global_stats import GlobalStatsGraph
 from .service_layers.logged_in_user import LoggedInUser
@@ -97,6 +98,8 @@ def api_get_player(id_or_name):
         return jsonify(steam_id)
     else:
         # Treat as id
+        if is_local_dev():
+            return jsonify(id_or_name)
         result = steam_id_to_profile(id_or_name)
         if result is None:
             raise CalculatedError(404, "User not found")
