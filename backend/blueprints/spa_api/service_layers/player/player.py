@@ -6,6 +6,7 @@ from sqlalchemy import func, desc
 from backend.blueprints.spa_api.service_layers.utils import with_session
 from backend.blueprints.steam import get_steam_profile_or_random_response
 from backend.database.objects import PlayerGame
+from backend.utils.checks import is_local_dev
 from ...errors.errors import PlayerNotFound
 
 
@@ -32,6 +33,10 @@ class Player:
                               avatar_link="/psynet.jpg" if not id_.startswith(
                                   'b') else "/ai.jpg")
             raise PlayerNotFound
+        if is_local_dev():
+            # Get name played as
+            steam_profile['personaname'] = names_and_counts[0][0]
+
         return Player(id_=id_, name=steam_profile['personaname'], past_names=names_and_counts,
                       profile_link=steam_profile['profileurl'],
                       avatar_link=steam_profile['avatarfull'])
