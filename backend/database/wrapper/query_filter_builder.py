@@ -5,6 +5,7 @@ from sqlalchemy import cast, String
 from sqlalchemy.dialects import postgresql
 
 from backend.database.objects import Game, PlayerGame
+from backend.utils.checks import is_local_dev
 
 
 class QueryFilterBuilder:
@@ -113,6 +114,8 @@ class QueryFilterBuilder:
         return self
 
     def with_playlists(self, playlists: List[int]) -> 'QueryFilterBuilder':
+        if is_local_dev():
+            return self
         self.playlists = playlists
         return self
 
