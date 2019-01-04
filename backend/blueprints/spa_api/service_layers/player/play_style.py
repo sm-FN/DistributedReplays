@@ -4,9 +4,12 @@ from flask import current_app
 
 from backend.blueprints.spa_api.errors.errors import UserHasNoReplays
 from backend.blueprints.spa_api.service_layers.stat import DataPoint, PlayerDataPoint
+from backend.blueprints.spa_api.service_layers.utils import with_session
 from backend.utils.psyonix_api_handler import get_rank
 from .player_profile_stats import player_stat_wrapper, player_wrapper
 from backend.database.wrapper.chart.chart_data import ChartData, ChartDataPoint
+
+explanations = player_stat_wrapper.player_stats.stat_explanation_map
 
 
 class PlayStyleChartData(ChartData):
@@ -21,8 +24,8 @@ class PlayStyleResponse:
         self.showWarning = show_warning
 
     @classmethod
-    def create_from_id(cls, id_: str, raw=False, rank=None, replay_ids=None, playlist=13, win=None):
-        session = current_app.config['db']()
+    @with_session
+    def create_from_id(cls, id_: str, raw=False, rank=None, replay_ids=None, playlist=13, win=None, session=None):
         game_count = player_wrapper.get_total_games(session, id_)
         if game_count == 0:
             raise UserHasNoReplays()
@@ -38,11 +41,11 @@ class PlayStyleResponse:
         for spider_chart_group in spider_charts_groups:
             title = spider_chart_group['title']
             chart_data_points = [
-                ChartDataPoint(name=name.title(), value=averaged_stats[name], average=global_stats[name])
+                ChartDataPoint(name=explanations[name].short_name if name in explanations else name,
+                               value=averaged_stats[name], average=global_stats[name])
                 for name in spider_chart_group['group']
             ]
             play_style_chart_datas.append(PlayStyleChartData(title, chart_data_points))
-        session.close()
 
         return PlayStyleResponse(
             chart_datas=play_style_chart_datas,
@@ -50,9 +53,9 @@ class PlayStyleResponse:
         )
 
     @staticmethod
+    @with_session
     def create_all_stats_from_id(id_: str, rank: int = None, replay_ids: List[str] = None, playlist: int = 13,
-                                 win: bool = None) -> PlayerDataPoint:
-        session = current_app.config['db']()
+                                 win: bool = None, session=None) -> PlayerDataPoint:
         game_count = player_wrapper.get_total_games(session, id_)
         if game_count == 0:
             raise UserHasNoReplays()
@@ -64,8 +67,9 @@ class PlayStyleResponse:
                                                                               playlist=playlist, win=win)
         playstyle_data_raw: PlayerDataPoint = PlayerDataPoint(name=id_,
                                                               data_points=[
-                                                                  DataPoint(k, averaged_stats[k])
+                                                                  DataPoint(explanations[
+                                                                                k].field_rename if k in explanations else k,
+                                                                            averaged_stats[k])
                                                                   for k in averaged_stats
                                                               ])
-        session.close()
         return playstyle_data_raw

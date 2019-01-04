@@ -11,7 +11,7 @@ class BasicStatSubcategory(ChartSubcatagory):
     Positioning = auto()
     Boosts = auto()
     Efficiency = auto()
-    TeamPositioning = auto()
+    Team_Positioning = auto()
 
 
 SubCat = BasicStatSubcategory
@@ -20,11 +20,11 @@ Metadata = ChartStatsMetadata
 player_stats_metadata = [
     # Hits
     Metadata('hits', ChartType.radar, SubCat.Hits),
-    Metadata('avg hit dist', ChartType.radar, SubCat.Hits),
+    Metadata('average hit distance', ChartType.radar, SubCat.Hits),
     Metadata('ball hit forward', ChartType.bar, SubCat.Hits),
-    Metadata('dribbles', ChartType.bar, SubCat.Hits),
-    Metadata('passes', ChartType.bar, SubCat.Hits),
-    Metadata('aerials', ChartType.bar, SubCat.Hits),
+    Metadata('total_dribbles', ChartType.bar, SubCat.Hits),
+    Metadata('total_passes', ChartType.bar, SubCat.Hits),
+    Metadata('total_aerials', ChartType.bar, SubCat.Hits),
 
     # Ball
     Metadata('time close to ball', ChartType.radar, SubCat.Ball),
@@ -46,13 +46,13 @@ player_stats_metadata = [
     Metadata('time in corner', ChartType.radar, SubCat.Positioning),
 
     # playstyles
-    Metadata('speed', ChartType.radar, SubCat.Playstyles),
+    Metadata('average_speed', ChartType.radar, SubCat.Playstyles),
     Metadata('time at boost speed', ChartType.radar, SubCat.Playstyles),
     Metadata('time at slow speed', ChartType.radar, SubCat.Playstyles),
     Metadata('time at super sonic', ChartType.radar, SubCat.Playstyles),
 
     # Possession
-    Metadata('possession', ChartType.pie, SubCat.Possession),
+    Metadata('possession_time', ChartType.pie, SubCat.Possession),
     Metadata('turnovers', ChartType.bar, SubCat.Possession),
     Metadata('turnovers on my half', ChartType.bar, SubCat.Possession),
     Metadata('turnovers on their half', ChartType.bar, SubCat.Possession),
@@ -79,9 +79,9 @@ player_stats_metadata = [
     Metadata('aerial efficiency', ChartType.radar, SubCat.Efficiency),
 
     # team positioning
-    Metadata('time in front of center of mass', ChartType.radar, SubCat.TeamPositioning),
-    Metadata('time behind center of mass', ChartType.radar, SubCat.TeamPositioning),
-    Metadata('time most forward player', ChartType.bar, SubCat.TeamPositioning),
-    Metadata('time most back player', ChartType.bar, SubCat.TeamPositioning),
-    Metadata('time between players', ChartType.bar, SubCat.TeamPositioning),
+    Metadata('time in front of center of mass', ChartType.radar, SubCat.Team_Positioning),
+    Metadata('time behind center of mass', ChartType.radar, SubCat.Team_Positioning),
+    Metadata('time most forward player', ChartType.bar, SubCat.Team_Positioning),
+    Metadata('time most back player', ChartType.bar, SubCat.Team_Positioning),
+    Metadata('time between players', ChartType.bar, SubCat.Team_Positioning),
 ]

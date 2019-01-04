@@ -3,6 +3,7 @@ from typing import List
 from sqlalchemy import func
 
 from backend.blueprints.spa_api.errors.errors import ReplayNotFound
+from backend.blueprints.spa_api.service_layers.utils import with_session
 from backend.database.objects import PlayerGame, Game, TeamStat
 from backend.database.wrapper.chart.chart_data import ChartStatsMetadata
 from backend.database.wrapper.chart.stat_point import DatabaseObjectDataPoint, StatDataPoint, OutputChartData
@@ -11,7 +12,8 @@ from backend.database.wrapper.stats.shared_stats_wrapper import SharedStatsWrapp
 
 class ChartStatsWrapper(SharedStatsWrapper):
 
-    def get_chart_stats_for_player(self, session, id_: str) -> List[DatabaseObjectDataPoint]:
+    @with_session
+    def get_chart_stats_for_player(self, id_: str, session=None) -> List[DatabaseObjectDataPoint]:
         game: Game = session.query(Game).filter(Game.hash == id_).first()
         if game is None:
             raise ReplayNotFound()
@@ -25,12 +27,12 @@ class ChartStatsWrapper(SharedStatsWrapper):
             DatabaseObjectDataPoint(id=playergame[0], is_orange=playergame[1], name=playergame[2],
                                     stats=self.get_wrapped_stats(playergame[3:], self.player_stats))
             for playergame in playergames]
-
         wrapped_playergames = sorted(sorted(wrapped_playergames, key=lambda x: x.id), key=lambda x: x.is_orange)
 
         return wrapped_playergames
 
-    def get_chart_stats_for_team(self, session, id_: str) -> List[DatabaseObjectDataPoint]:
+    @with_session
+    def get_chart_stats_for_team(self, id_: str, session=None) -> List[DatabaseObjectDataPoint]:
         game: Game = session.query(Game).filter(Game.hash == id_).first()
         if game is None:
             raise ReplayNotFound()
@@ -53,10 +55,18 @@ class ChartStatsWrapper(SharedStatsWrapper):
                          chart_metadata_list: List[ChartStatsMetadata]) -> List[OutputChartData]:
         all_chart_data = []
         for basic_stats_metadata in chart_metadata_list:
+            stat_name = basic_stats_metadata.stat_name
+            adjusted_stat_name = stat_name.replace(' ', '_')
             data_points = []
             for player_game in database_data_point:
-                if basic_stats_metadata.stat_name in player_game.stats:
-                    val = player_game.stats[basic_stats_metadata.stat_name]
+                # print(basic_stats_metadata.stat_name, player_game.stats.keys())
+                if adjusted_stat_name in player_game.stats:
+                    val = player_game.stats[adjusted_stat_name]
+                    if val is None:
+                        val = 0.0
+                    value = float(val)
+                elif stat_name in player_game.stats:
+                    val = player_game.stats[stat_name]
                     if val is None:
                         val = 0.0
                     value = float(val)
@@ -70,13 +80,14 @@ class ChartStatsWrapper(SharedStatsWrapper):
                 data_points.append(point)
 
             chart_data = OutputChartData(
-                title=basic_stats_metadata.stat_name,
+                title=stat_name if stat_name not in self.player_stats.stat_explanation_map else self.player_stats.stat_explanation_map[stat_name].field_rename,
                 chart_data_points=data_points,
                 type_=basic_stats_metadata.type,
                 subcategory=basic_stats_metadata.subcategory
             )
             if all(chart_data_point['value'] is None or chart_data_point['value'] == 0 for chart_data_point in
                    chart_data.chartDataPoints):
+                print(basic_stats_metadata.stat_name, 'is zero')
                 continue
             all_chart_data.append(chart_data)
         return all_chart_data
