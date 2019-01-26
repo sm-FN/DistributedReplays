@@ -103,12 +103,12 @@ export class ReplayViewer extends React.PureComponent<Props, State> {
         )
     }
 
-    private readonly getReplayPositions = async(): Promise<void> => {
+    private readonly getReplayPositions = async (): Promise<void> => {
         const replayData: ReplayDataResponse = await getReplayViewerData(this.props.replay.id)  // TODO: type replayData
         this.setState({ replayData })
     }
 
-    private readonly getReplayProto = async(): Promise<void> => {
+    private readonly getReplayProto = async (): Promise<void> => {
         const replayProto: any = await getReplayViewerProto(this.props.replay.id) // TODO: type replayProto.
         this.setState({ replayProto })
     }

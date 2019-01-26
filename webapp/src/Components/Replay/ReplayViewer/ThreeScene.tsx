@@ -220,25 +220,9 @@ export class ThreeScene extends React.PureComponent<Props> {
         // Hemisphere light
         field.scene.add(new HemisphereLight(0xffffbb, 0x080820, 1))
 
-        // const objLoader = new OBJLoader(this.loadingManager)
-        // objLoader.load("/assets/shared/models/Field2.obj", (arena: Group) => {
-        //     const w = window as any
-        //     w.arena = arena
-        //     arena.scale.setScalar(1000)
-        //     arena.rotation.set(0, Math.PI / 2, 0)
-        //     this.threeField.scene.add(arena)
-        // })
-
-        // mtlLoader.load("/assets/shared/models/Field2.mtl", (materials: any) => {
-        //     const w = window as any
-        //     w.materials = materials
-        //     // materials.preload()
-        //     // objLoader.setMaterials(materials)
-        //     objLoader.load("/assets/shared/models/Field2.obj", (field: Group) => {
-        //             w.field = field
-        //             this.scene.add(field)
-        //         })
-        // })
+        // TODO:
+        // const field = await ThreeModelLoader.Instance(this.loadingManager).getField()
+        // field.scene.add(field)
     }
 
     private readonly generateBall = async () => {
