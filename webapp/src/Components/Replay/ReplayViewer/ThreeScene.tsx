@@ -1,31 +1,24 @@
 import * as React from "react"
-import { MTLLoader, OBJLoader, Stats } from "src/lib"
+import { Stats } from "src/lib"
 import { FPSClock } from "src/Models"
 import { isDevelopment } from "src/Utils"
 import {
     AmbientLight,
     AxesHelper,
-    BackSide,
-    BoxBufferGeometry,
     DoubleSide,
-    Group,
     HemisphereLight,
-    LinearMipMapLinearFilter,
     LoadingManager,
     Mesh,
-    MeshNormalMaterial,
     MeshPhongMaterial,
-    NearestFilter,
     Object3D,
     PerspectiveCamera,
     PlaneBufferGeometry,
     Scene,
-    Sprite,
-    SpriteMaterial,
-    Texture,
     WebGLRenderer
 } from "three"
-import { BALL_NAME, CAR_SUFFIX, ThreeHelper } from "./ThreeHelper"
+import { BALL_NAME, ThreeHelper } from "./ThreeHelper"
+import { ThreeModelLoader } from "./ThreeLoader"
+import { ThreePlayer } from "./ThreePlayer"
 
 export interface Props {
     replayData: ReplayDataResponse
@@ -37,7 +30,7 @@ interface FieldScene {
     camera: PerspectiveCamera
     ball: Object3D
     ground: Object3D
-    players: Object3D[]
+    players: ThreePlayer[]
 }
 
 export class ThreeScene extends React.PureComponent<Props> {
@@ -57,7 +50,7 @@ export class ThreeScene extends React.PureComponent<Props> {
     }
 
     public componentDidMount() {
-        this.loadingManager = new LoadingManager(this.start)
+        this.loadingManager = new LoadingManager()
         this.loadingManager.onProgress = (item, loaded, total) => {
             // TODO: Show loader animation that prints what is getting loaded and progress
             // console.log(item, loaded, total)
@@ -70,11 +63,11 @@ export class ThreeScene extends React.PureComponent<Props> {
         // Add field
         this.generatePlayfield()
 
-        // Add ball
-        this.generateBall()
-
-        // Add players
-        this.generatePlayers(this.props.replayData.names)
+        const asyncLoaders = Promise.all([
+            this.generateBall(),
+            this.generatePlayers(this.props.replayData.names)
+        ])
+        asyncLoaders.then(this.start).catch((e) => console.error(e))
 
         // Logs framerate
         if (isDevelopment()) {
@@ -139,6 +132,7 @@ export class ThreeScene extends React.PureComponent<Props> {
         if (this.stats) {
             this.stats.begin()
         }
+
         // Send delta to the helper for clip position updates
         const delta = this.props.clock.getDelta()
         this.helper.updateAnimationClips(delta)
@@ -146,6 +140,7 @@ export class ThreeScene extends React.PureComponent<Props> {
         this.updateCamera()
         // Paints the new scene
         this.renderScene()
+
         if (this.stats) {
             this.stats.end()
         }
@@ -246,146 +241,44 @@ export class ThreeScene extends React.PureComponent<Props> {
         // })
     }
 
-    private readonly generateBall = () => {
+    private readonly generateBall = async () => {
         const field = this.threeField
-        const materialLoader = new MTLLoader(this.loadingManager)
-        materialLoader.setPath("/assets/shared/models/")
-        materialLoader.setMaterialOptions({side: BackSide})
-        materialLoader.load("Ball.mtl", (mtlc) => {
-            const objectLoader = new OBJLoader(this.loadingManager)
-            objectLoader.setMaterials(mtlc)
-            objectLoader.load("/assets/shared/models/Ball.obj", (ball: Object3D) => {
-                ball.name = BALL_NAME
-                ball.scale.setScalar(92.75)
-                ball.add(new AxesHelper(5))
-                this.helper.addBallMixer(ball)
-                field.ball = ball
-                field.scene.add(ball)
-            })
-        })
+        const ball = await ThreeModelLoader.Instance(this.loadingManager).getBall()
+        ball.name = BALL_NAME
+        ball.scale.setScalar(92.75)
+        ball.add(new AxesHelper(5))
+        this.helper.addBallMixer(ball)
+        field.ball = ball
+        field.scene.add(ball)
     }
 
-    private readonly generatePlayers = (players: string[]) => {
+    private readonly generatePlayers = async (players: string[]) => {
         const field = this.threeField
         field.players = []
 
-        const generatePlayernameSprite = (name: string, orangeTeam: boolean) => {
-            // All nametag names are uppercase
-            name = name.toUpperCase()
+        const octane = await ThreeModelLoader.Instance(this.loadingManager).getCar()
+        this.addToWindow(octane, "car")
+        octane.scale.setScalar(40) // TODO: This size is 20
+        const chassis = (octane.children[0] as Mesh).material[1] as MeshPhongMaterial
+        chassis.color.setHex(0x555555)
 
-            const border = 10
-            const fontSize = 60
-            const canvasSize = 480
-            const canvas = document.createElement("canvas")
-            canvas.width = 512
-            canvas.height = canvas.width
-            const context = canvas.getContext("2d")
+        for (let i = 0; i < players.length; i++) {
+            const name = players[i]
+            const orangeTeam = this.props.replayData.colors[i]
+            const player = new ThreePlayer(name, orangeTeam)
+            const playerMesh = octane.clone(true)
+            player.init(playerMesh)
 
-            // Rectangle prototyping
-            const roundRect = (
-                ct: CanvasRenderingContext2D,
-                x: number,
-                y: number,
-                w: number,
-                h: number,
-                radius: number
-            ) => {
-                if (w > h) {
-                    radius = h / 2
-                } else {
-                    radius = w / 2
-                }
-                ct.beginPath()
-                ct.moveTo(x + radius, y)
-                ct.arcTo(x + w, y, x + w, y + h, radius)
-                ct.arcTo(x + w, y + h, x, y + h, radius)
-                ct.arcTo(x, y + h, x, y, radius)
-                ct.arcTo(x, y, x + w, y, radius)
-                ct.closePath()
-                return ct
+            // Debugging
+            player.carObject.add(new AxesHelper(5))
+            if (this.props.replayData.names[i] === "Sciguymjm") {
+                this.addToWindow(player, "player")
             }
 
-            if (context) {
-                context.font = `bold ${fontSize}px Arial`
-                context.fillStyle = orangeTeam ? "#ff9800" : "#2196f3"
-                roundRect(context, border, border, canvasSize, fontSize + border * 2, fontSize * 2).fill()
-                context.strokeStyle = "#eee"
-                context.lineWidth = border
-                roundRect(context, border, border, canvasSize, fontSize + border * 2, fontSize * 2).stroke()
-                context.fillStyle = "#fff"
-                const measure = context.measureText(name)
-                const padding = border / 2 + fontSize / 2
-                const maxWidth = canvasSize - padding * 2
-                const width = maxWidth > measure.width ? measure.width : maxWidth
-                const x = canvasSize / 2 + border / 2 - width / 2
-                context.fillText(name, x, fontSize + border, maxWidth)
-            }
-
-            const texture = new Texture(canvas)
-            texture.needsUpdate = true
-            texture.magFilter = NearestFilter
-            texture.minFilter = LinearMipMapLinearFilter
-            const spriteMaterial = new SpriteMaterial({
-                map: texture
-            })
-            const sprite = new Sprite(spriteMaterial)
-            return sprite
+            field.scene.add(player.carObject)
+            field.players.push(player)
+            this.helper.addPlayerMixer(player.carObject)
         }
-
-        const materialLoader = new MTLLoader(this.loadingManager)
-        materialLoader.load("/assets/shared/models/Octane.mtl", (mtlc) => {
-            const objectLoader = new OBJLoader(this.loadingManager)
-            objectLoader.setMaterials(mtlc)
-            objectLoader.load("/assets/shared/models/Octane.obj", (octane: Group) => {
-                this.addToWindow(octane, "car")
-                octane.scale.setScalar(40) // TODO: This size is 20
-                const chassis = (octane.children[0] as Mesh).material[1] as MeshPhongMaterial
-                chassis.color.setHex(0x555555)
-
-                for (let i = 0; i < players.length; i++) {
-                    // Clone the octane and rename it to the player
-                    const playerMesh = octane.clone(true)
-                    playerMesh.name = `${players[i]}${CAR_SUFFIX}`
-                    // Grab the existing car mesh
-                    const mesh = playerMesh.children[0] as Mesh
-                    // Clone all materials
-                    const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
-                    mesh.material = materials.map((material) => material.clone())
-                    mesh.name = `${players[i]}-main-mesh`
-                    // The top half of the car
-                    const body = mesh.material[0] as MeshPhongMaterial
-                    body.name = `${players[i]}-body`
-                    // 0xff9800 is orange, 0x2196f3 is blue
-                    const carColor = this.props.replayData.colors[i] ? 0xff9800 : 0x2196f3
-                    body.color.setHex(carColor)
-
-                    const player = new Group()
-                    player.name = players[i]
-                    player.add(playerMesh)
-
-                    const indicator = new Mesh(
-                        new BoxBufferGeometry(30, 30, 100),
-                        new MeshNormalMaterial()
-                    )
-                    indicator.position.y = -200
-                    player.add(indicator)
-                    // Add nametag
-                    const nametag = generatePlayernameSprite(players[i], this.props.replayData.colors[i])
-                    nametag.scale.setScalar(600)
-                    player.add(nametag)
-
-                    // Debugging
-                    player.add(new AxesHelper(5))
-                    if (this.props.replayData.names[i] === "Sciguymjm") {
-                        this.addToWindow(player, "player")
-                    }
-
-                    field.scene.add(player)
-                    field.players.push(player)
-                    this.helper.addPlayerMixer(player)
-                }
-            })
-        })
     }
 
     private readonly updateCamera = () => {
