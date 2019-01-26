@@ -1,5 +1,6 @@
 import {
     BoxBufferGeometry,
+    Camera,
     Group,
     LinearMipMapLinearFilter,
     Mesh,
@@ -8,19 +9,28 @@ import {
     NearestFilter,
     Sprite,
     SpriteMaterial,
-    Texture
+    Texture,
+    Vector3
 } from "three"
 import { CAR_SUFFIX } from "./ThreeHelper"
+
+const CAMERA_ABOVE_PLAYER = 200
 
 export class ThreePlayer {
     public carObject: Group
 
+    private camera: Camera | null
+    private nameTag: Sprite
     private readonly playerName: string
     private readonly orangeTeam: boolean
 
     constructor(playerName: string, orangeTeam: boolean) {
         this.playerName = playerName
         this.orangeTeam = orangeTeam
+    }
+
+    public getName() {
+        return this.playerName
     }
 
     public init(carObject: Group) {
@@ -34,11 +44,40 @@ export class ThreePlayer {
         indicator.position.y = -200
         player.add(indicator)
         // Add nametag
-        const nametag = this.generateSprite()
-        nametag.scale.setScalar(600)
-        player.add(nametag)
+        this.generateSprite()
+        this.nameTag.scale.setScalar(600)
+        player.add(this.nameTag)
 
         this.carObject = player
+    }
+
+    public makeActive(camera: Camera) {
+        this.carObject.add(camera)
+        this.camera = camera
+        camera.position.set(0, CAMERA_ABOVE_PLAYER, 0)
+        this.nameTag.visible = false
+    }
+
+    public updateCamera(ballPosition: Vector3) {
+        const vectorToBall = new Vector3()
+        const scaleFromPlayer = 500
+        vectorToBall.subVectors(this.carObject.position, ballPosition)
+        vectorToBall.setLength(scaleFromPlayer)
+        vectorToBall.y += CAMERA_ABOVE_PLAYER
+        if (vectorToBall.y < 0) {
+            const lowYFactor = 15
+            vectorToBall.setLength(lowYFactor / -vectorToBall.y + (scaleFromPlayer - lowYFactor))
+            vectorToBall.y = 0
+        }
+        this.camera!.position.copy(vectorToBall)
+    }
+
+    public makeUnactive() {
+        this.nameTag.visible = true
+        if (this.camera) {
+            this.carObject.remove(this.camera)
+        }
+        this.camera = null
     }
 
     private setMaterial(playerMesh: Group) {
@@ -130,6 +169,6 @@ export class ThreePlayer {
             map: texture
         })
         const sprite = new Sprite(spriteMaterial)
-        return sprite
+        this.nameTag = sprite
     }
 }

@@ -40,6 +40,7 @@ export class ThreeScene extends React.PureComponent<Props> {
     private mount: HTMLDivElement
     private stats: Stats | null
     private hasStarted: boolean
+    private activePlayer?: ThreePlayer
     private readonly helper: ThreeHelper
     private readonly threeField: FieldScene
 
@@ -80,6 +81,7 @@ export class ThreeScene extends React.PureComponent<Props> {
 
     public componentDidUpdate() {
         this.addToWindow(this.props.clock, "clock")
+        this.setActivePlayer()
     }
 
     public componentWillUnmount() {
@@ -171,7 +173,7 @@ export class ThreeScene extends React.PureComponent<Props> {
         this.threeField.scene = new Scene()
 
         // Add camera
-        this.threeField.camera = new PerspectiveCamera(75, width / height, 0.1, 20000)
+        this.threeField.camera = new PerspectiveCamera(80, width / height, 0.1, 20000)
         this.setCameraView(0)
         this.addToWindow(this.threeField.camera, "camera")
         this.threeField.camera.rotation.x -= (7 * Math.PI) / 180
@@ -268,9 +270,27 @@ export class ThreeScene extends React.PureComponent<Props> {
 
     private readonly updateCamera = () => {
         this.threeField.camera.lookAt(this.threeField.ball.position)
+        if (this.activePlayer) {
+            this.activePlayer.updateCamera(this.threeField.ball.position)
+        }
     }
 
-    private readonly setCameraView = (viewId: number) => {
+    private readonly setActivePlayer = () => {
+        const { camera } = this.threeField
+        if (this.activePlayer) {
+            this.activePlayer.makeUnactive()
+        }
+        this.activePlayer = this.threeField.players.find((player) => {
+            return player.getName() === this.props.activeCamera
+        })
+        if (this.activePlayer) {
+            this.activePlayer.makeActive(camera)
+        } else {
+            this.setCameraView(0)
+        }
+    }
+
+    private readonly setCameraView = (viewId: number | string) => {
         const field = this.threeField
         switch (viewId) {
             case 0:
