@@ -1,8 +1,16 @@
-import { Button, CardContent, Grid, TextField, Typography } from "@material-ui/core"
+import {
+    Button,
+    CardContent,
+    CircularProgress,
+    Grid,
+    TextField,
+    Typography
+} from "@material-ui/core"
 import Slider from "@material-ui/lab/Slider"
 import * as React from "react"
 import { FPSClock, Replay } from "src/Models"
 import { getReplayViewerData, getReplayViewerProto } from "../../../Requests/Replay"
+import { ReplayControls } from "./ReplayControls"
 import { Scoreboard } from "./Scoreboard"
 import { ThreeScene } from "./ThreeScene"
 
@@ -16,6 +24,7 @@ interface State {
     replayData?: ReplayDataResponse
     replayProto?: any
     clock: FPSClock
+    activeCamera?: string
     gameTime: number
     play: boolean
     team0Score: number
@@ -54,49 +63,98 @@ export class ReplayViewer extends React.PureComponent<Props, State> {
     }
 
     public render() {
+        if (!this.state.replayData) {
+            return (
+                <CardContent>
+                    <Grid container justify="center">
+                        <CircularProgress size={36} />
+                    </Grid>
+                </CardContent>
+            )
+        }
+
+        const setActiveCamera = (playerName: string) => {
+            this.setState({ activeCamera: playerName })
+        }
+
+        const { clock, replayData, team0Score, team1Score, activeCamera } = this.state
+
         return (
             <CardContent>
                 <Grid container spacing={24}>
                     <Grid item xs={12}>
-                        {this.state.replayData && this.state.clock ? (
+                        {clock ? (
                             <>
-                                <Scoreboard team0Score={this.state.team0Score} team1Score={this.state.team1Score}
-                                            gameTime={this.getGameTimeString()} />
-                                <ThreeScene clock={this.state.clock}
-                                            replayData={this.state.replayData} />
+                                <Scoreboard
+                                    team0Score={team0Score}
+                                    team1Score={team1Score}
+                                    gameTime={this.getGameTimeString()}
+                                />
+                                <ThreeScene
+                                    clock={clock}
+                                    replayData={replayData}
+                                    activeCamera={activeCamera}
+                                />
                             </>
                         ) : (
-                            <Typography variant="title" align="center">Loading...</Typography>
+                            <Typography variant="title" align="center">
+                                Loading...
+                            </Typography>
                         )}
+                    </Grid>
+                    <Grid item xs={12} container>
+                        <Grid item xs={6}>
+                            <ReplayControls
+                                players={replayData.names.filter(
+                                    (_, index: number) => replayData.colors[index]
+                                )}
+                                onPlayerSelected={(playerName) => setActiveCamera(playerName)}
+                            />
+                        </Grid>
+                        <Grid item xs={6}>
+                            <ReplayControls
+                                players={replayData.names.filter(
+                                    (_, index: number) => !replayData.colors[index]
+                                )}
+                                onPlayerSelected={(playerName) => setActiveCamera(playerName)}
+                            />
+                        </Grid>
                     </Grid>
                     <Grid item xs={12} container>
                         <Grid item xs={4} container justify="space-around">
                             <Typography align="center">Playback Controls</Typography>
-                            <Button variant="outlined" onClick={() => this.setPlayback(true)}>Play</Button>
-                            <Button variant="outlined" onClick={() => this.setPlayback(false)}>Pause</Button>
+                            <Button variant="outlined" onClick={() => this.setPlayback(true)}>
+                                Play
+                            </Button>
+                            <Button variant="outlined" onClick={() => this.setPlayback(false)}>
+                                Pause
+                            </Button>
                         </Grid>
                         <Grid item xs={4}>
                             <Typography>Frame:</Typography>
-                            <TextField type="number" value={this.state.clock.currentFrame}
-                                       onChange={this.setCurrentFrame} />
+                            <TextField
+                                type="number"
+                                value={clock.currentFrame}
+                                onChange={this.setCurrentFrame}
+                            />
                         </Grid>
                         <Grid item xs={4}>
                             <Typography>
                                 Ball Position:
-                                {this.state.replayData && this.state.replayData.ball[this.state.clock.currentFrame][0]},
-                                {this.state.replayData && this.state.replayData.ball[this.state.clock.currentFrame][1]},
-                                {this.state.replayData && this.state.replayData.ball[this.state.clock.currentFrame][2]}
+                                {replayData.ball[clock.currentFrame][0]},
+                                {replayData.ball[clock.currentFrame][1]},
+                                {replayData.ball[clock.currentFrame][2]}
                             </Typography>
                         </Grid>
                     </Grid>
                     <Grid item xs={12}>
-                    {this.state.replayData && <Slider
-                        value={this.state.clock.currentFrame}
-                        min={0}
-                        max={this.state.replayData.frames.length - 1}
-                        step={1}
-                        onChange={this.onSliderChange}
-                    />}
+                        <Slider
+                            value={clock.currentFrame}
+                            min={0}
+                            max={replayData.frames.length - 1}
+                            step={1}
+                            onChange={this.onSliderChange}
+                        />
                     </Grid>
                 </Grid>
             </CardContent>
@@ -104,7 +162,7 @@ export class ReplayViewer extends React.PureComponent<Props, State> {
     }
 
     private readonly getReplayPositions = async (): Promise<void> => {
-        const replayData: ReplayDataResponse = await getReplayViewerData(this.props.replay.id)  // TODO: type replayData
+        const replayData: ReplayDataResponse = await getReplayViewerData(this.props.replay.id) // TODO: type replayData
         this.setState({ replayData })
     }
 
@@ -120,7 +178,7 @@ export class ReplayViewer extends React.PureComponent<Props, State> {
                 playerTeamMap[player.id] = i
             })
         })
-        this.setState({playerTeamMap})
+        this.setState({ playerTeamMap })
     }
 
     private readonly onFrameUpdate = (frame: number) => {
@@ -165,9 +223,11 @@ export class ReplayViewer extends React.PureComponent<Props, State> {
         const goals = this.state.replayProto.gameMetadata.goals
         let team0Score = 0
         let team1Score = 0
-        goals.forEach((goal: any) => {  // TODO: Specify replayProto type as we"re doing extensive work with it.
+        goals.forEach((goal: any) => {
+            // TODO: Specify replayProto type as we"re doing extensive work with it.
             if (goal.frameNumber <= currentFrame) {
-                if (this.state.playerTeamMap[goal.playerId.id] === 0) { // Where is playerTeamMap
+                if (this.state.playerTeamMap[goal.playerId.id] === 0) {
+                    // Where is playerTeamMap
                     team0Score++
                 } else {
                     team1Score++
@@ -175,7 +235,7 @@ export class ReplayViewer extends React.PureComponent<Props, State> {
             }
         })
         if (team0Score !== this.state.team0Score || team1Score !== this.state.team1Score) {
-            this.setState({team0Score, team1Score})
+            this.setState({ team0Score, team1Score })
         }
     }
 

@@ -23,6 +23,7 @@ import { ThreePlayer } from "./ThreePlayer"
 export interface Props {
     replayData: ReplayDataResponse
     clock: FPSClock
+    activeCamera?: string
 }
 
 interface FieldScene {
@@ -60,14 +61,14 @@ export class ThreeScene extends React.PureComponent<Props> {
         this.generateScene()
         window.addEventListener("resize", this.updateSize)
 
-        // Add field
-        this.generatePlayfield()
-
         const asyncLoaders = Promise.all([
+            this.generatePlayfield(),
             this.generateBall(),
             this.generatePlayers(this.props.replayData.names)
         ])
-        asyncLoaders.then(this.start).catch((e) => console.error(e))
+        asyncLoaders
+            .then(this.start)
+            .catch((e) => console.error(`There was an error generating Three objects: ${e}`))
 
         // Logs framerate
         if (isDevelopment()) {
