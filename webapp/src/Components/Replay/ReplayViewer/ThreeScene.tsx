@@ -40,7 +40,7 @@ export class ThreeScene extends React.PureComponent<Props> {
     private mount: HTMLDivElement
     private stats: Stats | null
     private hasStarted: boolean
-    private activePlayer?: ThreePlayer
+    private activePlayer: number
     private readonly helper: ThreeHelper
     private readonly threeField: FieldScene
 
@@ -49,6 +49,7 @@ export class ThreeScene extends React.PureComponent<Props> {
         this.helper = new ThreeHelper(props.replayData)
         this.threeField = {} as any
         this.addToWindow(this.threeField, "field")
+        this.activePlayer = -1
     }
 
     public componentDidMount() {
@@ -131,7 +132,7 @@ export class ThreeScene extends React.PureComponent<Props> {
     /**
      * Called with a frame number from the FPSClock.
      */
-    private readonly animate = (_: number) => {
+    private readonly animate = (frame: number) => {
         if (this.stats) {
             this.stats.begin()
         }
@@ -140,7 +141,7 @@ export class ThreeScene extends React.PureComponent<Props> {
         const delta = this.props.clock.getDelta()
         this.helper.updateAnimationClips(delta)
         // Point the camera
-        this.updateCamera()
+        this.updateCamera(frame)
         // Paints the new scene
         this.renderScene()
 
@@ -268,23 +269,27 @@ export class ThreeScene extends React.PureComponent<Props> {
         }
     }
 
-    private readonly updateCamera = () => {
+    private readonly updateCamera = (frame: number) => {
         this.threeField.camera.lookAt(this.threeField.ball.position)
-        if (this.activePlayer) {
-            this.activePlayer.updateCamera(this.threeField.ball.position)
+        if (this.activePlayer !== -1) {
+            const isUsingBoost = this.props.replayData.players[this.activePlayer][frame][6]
+            this.threeField.players[this.activePlayer].updateCamera(
+                this.threeField.ball.position,
+                isUsingBoost
+            )
         }
     }
 
     private readonly setActivePlayer = () => {
         const { camera } = this.threeField
-        if (this.activePlayer) {
-            this.activePlayer.makeUnactive()
+        if (this.activePlayer !== -1) {
+            this.threeField.players[this.activePlayer].makeUnactive()
         }
-        this.activePlayer = this.threeField.players.find((player) => {
+        this.activePlayer = this.threeField.players.findIndex((player) => {
             return player.getName() === this.props.activeCamera
         })
-        if (this.activePlayer) {
-            this.activePlayer.makeActive(camera)
+        if (this.activePlayer !== -1) {
+            this.threeField.players[this.activePlayer].makeActive(camera)
         } else {
             this.setCameraView(0)
         }

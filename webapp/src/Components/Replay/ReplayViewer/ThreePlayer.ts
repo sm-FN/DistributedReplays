@@ -40,9 +40,6 @@ export class ThreePlayer {
         player.name = this.playerName
         player.add(carObject)
 
-        const indicator = new Mesh(new BoxBufferGeometry(30, 30, 100), new MeshNormalMaterial())
-        indicator.position.y = -200
-        player.add(indicator)
         // Add nametag
         this.generateSprite()
         this.nameTag.scale.setScalar(600)
@@ -58,7 +55,7 @@ export class ThreePlayer {
         this.nameTag.visible = false
     }
 
-    public updateCamera(ballPosition: Vector3) {
+    public updateCamera(ballPosition: Vector3, isUsingBoost: boolean) {
         const vectorToBall = new Vector3()
         const scaleFromPlayer = 500
         vectorToBall.subVectors(this.carObject.position, ballPosition)
@@ -69,7 +66,16 @@ export class ThreePlayer {
             vectorToBall.setLength(lowYFactor / -vectorToBall.y + (scaleFromPlayer - lowYFactor))
             vectorToBall.y = 0
         }
-        this.camera!.position.copy(vectorToBall)
+        const camera = this.camera as any
+        // TODO: Tween FOV
+        // if (isUsingBoost && camera.fov === 80) {
+        //     camera.fov = 85
+        //     camera.updateProjectionMatrix()
+        // } else if (camera.fov === 85) {
+        //     camera.fov = 80
+        //     camera.updateProjectionMatrix()
+        // }
+        camera.position.copy(vectorToBall)
     }
 
     public makeUnactive() {
