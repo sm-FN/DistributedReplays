@@ -12,7 +12,7 @@ export class ThreeModelLoader {
 
     private static instance: ThreeModelLoader
 
-    private loadingManager: LoadingManager
+    private readonly loadingManager: LoadingManager
 
     private carObject: Group
     private ballObject: Group

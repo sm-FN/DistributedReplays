@@ -48,7 +48,14 @@
         "no-var-keyword": true,
         "no-void-expression": [true, "ignore-arrow-function-shorthand"],
         "object-literal-sort-keys": false,
-        "one-line": [true, "check-catch", "check-else", "check-finally", "check-open-brace", "check-whitespace"],
+        "one-line": [
+            true,
+            "check-catch",
+            "check-else",
+            "check-finally",
+            "check-open-brace",
+            "check-whitespace"
+        ],
         "only-arrow-functions": true,
         "ordered-imports": true,
         "prefer-conditional-expression": false,
@@ -57,11 +64,17 @@
         "prefer-readonly": true,
         "quotemark": [true, "double", "avoid-escape", "jsx-double"],
         "semicolon": [true, "never"],
-        "space-before-function-paren": [true, "never"],
-        "trailing-comma": [true, {
-            "multiline": "never",
-            "singleline": "never"
-        }],
+        "space-before-function-paren": [
+            true,
+            { "anonymous": "always", "named": "never", "asyncArrow": "always" }
+        ],
+        "trailing-comma": [
+            true,
+            {
+                "multiline": "never",
+                "singleline": "never"
+            }
+        ],
         "variable-name": [true, "ban-keywords", "check-format", "allow-pascal-case"],
         "whitespace": [
             true,

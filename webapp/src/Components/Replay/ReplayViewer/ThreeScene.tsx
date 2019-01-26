@@ -182,7 +182,7 @@ export class ThreeScene extends React.PureComponent<Props> {
         this.mount.appendChild(this.renderer.domElement)
     }
 
-    private readonly generatePlayfield = () => {
+    private readonly generatePlayfield = async () => {
         const field = this.threeField
 
         // Add green ground. TODO: Replace with field model

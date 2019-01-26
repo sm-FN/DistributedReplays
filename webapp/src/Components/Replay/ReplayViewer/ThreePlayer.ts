@@ -15,8 +15,8 @@ import { CAR_SUFFIX } from "./ThreeHelper"
 export class ThreePlayer {
     public carObject: Group
 
-    private playerName: string
-    private orangeTeam: boolean
+    private readonly playerName: string
+    private readonly orangeTeam: boolean
 
     constructor(playerName: string, orangeTeam: boolean) {
         this.playerName = playerName
