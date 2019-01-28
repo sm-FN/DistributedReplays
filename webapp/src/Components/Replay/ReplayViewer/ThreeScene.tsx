@@ -190,11 +190,12 @@ export class ThreeScene extends React.PureComponent<Props> {
         const field = this.threeField
 
         // Add green ground. TODO: Replace with field model
-        const geometry = new PlaneBufferGeometry(8192, 10240, 1, 1)
-        const material = new MeshPhongMaterial({ color: "#4CAF50" })
-        field.ground = new Mesh(geometry, material)
-        field.ground.rotation.x = -Math.PI / 2
-        field.scene.add(field.ground)
+        // const geometry = new PlaneBufferGeometry(8192, 10240, 1, 1)
+        // const material = new MeshPhongMaterial({ color: "#4CAF50" })
+        // field.ground = new Mesh(geometry, material)
+        // field.ground.position.y = -1
+        // field.ground.rotation.x = -Math.PI / 2
+        // field.scene.add(field.ground)
 
         // Add goals. TODO: Replace with field model
         const goalPlane = new PlaneBufferGeometry(2000, 1284.5, 1, 1)
@@ -225,16 +226,17 @@ export class ThreeScene extends React.PureComponent<Props> {
         field.scene.add(new HemisphereLight(0xffffbb, 0x080820, 1))
 
         // TODO:
-        // const field = await ThreeModelLoader.Instance(this.loadingManager).getField()
-        // field.scene.add(field)
+        const fieldModel = await ThreeModelLoader.Instance(this.loadingManager).getField()
+        field.ground = fieldModel
+        field.scene.add(fieldModel)
     }
 
     private readonly generateBall = async () => {
         const field = this.threeField
         const ball = await ThreeModelLoader.Instance(this.loadingManager).getBall()
         ball.name = BALL_NAME
-        ball.scale.setScalar(92.75)
-        ball.add(new AxesHelper(5))
+        ball.scale.setScalar(90)
+        // ball.add(new AxesHelper(5))
         this.helper.addBallMixer(ball)
         field.ball = ball
         field.scene.add(ball)
@@ -246,7 +248,7 @@ export class ThreeScene extends React.PureComponent<Props> {
 
         const octane = await ThreeModelLoader.Instance(this.loadingManager).getCar()
         this.addToWindow(octane, "car")
-        octane.scale.setScalar(40) // TODO: This size is 20
+        octane.scale.setScalar(20) // TODO: This size is 20
         const chassis = (octane.children[0] as Mesh).material[1] as MeshPhongMaterial
         chassis.color.setHex(0x555555)
 
@@ -280,11 +282,15 @@ export class ThreeScene extends React.PureComponent<Props> {
         }
     }
 
-    private readonly setActivePlayer = () => {
-        const { camera } = this.threeField
+    private readonly deactivatePlayer = () => {
         if (this.activePlayer !== -1) {
             this.threeField.players[this.activePlayer].makeUnactive()
         }
+    }
+
+    private readonly setActivePlayer = () => {
+        const { camera } = this.threeField
+        this.deactivatePlayer()
         this.activePlayer = this.threeField.players.findIndex((player) => {
             return player.getName() === this.props.activeCamera
         })
@@ -297,6 +303,8 @@ export class ThreeScene extends React.PureComponent<Props> {
 
     private readonly setCameraView = (viewId: number | string) => {
         const field = this.threeField
+        this.deactivatePlayer()
+        this.activePlayer = -1
         switch (viewId) {
             case 0:
                 field.camera.position.z = 5750

@@ -1,6 +1,6 @@
 import { MTLLoader, OBJLoader } from "src/lib"
 
-import { BackSide, Group, LoadingManager } from "three"
+import { BackSide, Group, LoadingManager, Mesh, MeshPhongMaterial } from "three"
 
 export class ThreeModelLoader {
     public static Instance(loadingManager: LoadingManager) {
@@ -85,27 +85,48 @@ export class ThreeModelLoader {
                 // objLoader.load("/assets/shared/models/Field2.obj", (arena: Group) => {
                 //     const w = window as any
                 //     w.arena = arena
-                //     arena.scale.setScalar(1000)
+                //     arena.scale.setScalar(985)
                 //     arena.rotation.set(0, Math.PI / 2, 0)
                 //     this.threeField.scene.add(arena)
                 // })
 
-                const materialLoader = new MTLLoader(this.loadingManager)
-                materialLoader.load(
-                    "/assets/shared/models/Field2.mtl",
-                    (materials: any) => {
-                        const objectLoader = new OBJLoader(this.loadingManager)
-                        materials.preload()
-                        objectLoader.setMaterials(materials)
-                        objectLoader.load(
-                            "/assets/shared/models/Field2.obj",
-                            (field: Group) => {
-                                this.fieldObject = field
-                                resolve()
-                            },
-                            undefined,
-                            (error: ErrorEvent) => reject(error)
-                        )
+                // const materialLoader = new MTLLoader(this.loadingManager)
+                // materialLoader.setMaterialOptions({ side: BackSide })
+                // materialLoader.load(
+                //     "/assets/shared/models/Field.mtl",
+                //     (materials: any) => {
+                //         const objectLoader = new OBJLoader(this.loadingManager)
+                //         materials.preload()
+                //         // objectLoader.setMaterials(materials)
+                //         objectLoader.load(
+                //             "/assets/shared/models/Field.obj",
+                //             (field: Group) => {
+                //                 this.fieldObject = field
+                //                 resolve()
+                //             },
+                //             undefined,
+                //             (error: ErrorEvent) => reject(error)
+                //         )
+                //     },
+                //     undefined,
+                //     (error: ErrorEvent) => reject(error)
+                // )
+
+                // const mc = new MaterialCreator()
+                // mc.setMaterials(cleanMaterial)
+                // mc.side = BackSide
+                const objectLoader = new OBJLoader(this.loadingManager)
+                // objectLoader.setMaterials(mc)
+                objectLoader.load(
+                    "/assets/shared/models/Field.obj",
+                    (field: Group) => {
+                        field.children.map((mesh: Mesh) => {
+                            const cleanMaterial = new MeshPhongMaterial({ color: 0x555555 })
+                            cleanMaterial.side = BackSide
+                            mesh.material = cleanMaterial
+                        })
+                        this.fieldObject = field
+                        resolve()
                     },
                     undefined,
                     (error: ErrorEvent) => reject(error)

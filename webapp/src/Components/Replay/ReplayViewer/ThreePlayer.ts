@@ -1,10 +1,8 @@
 import {
-    BoxBufferGeometry,
     Camera,
     Group,
     LinearMipMapLinearFilter,
     Mesh,
-    MeshNormalMaterial,
     MeshPhongMaterial,
     NearestFilter,
     Sprite,
@@ -57,7 +55,7 @@ export class ThreePlayer {
 
     public updateCamera(ballPosition: Vector3, isUsingBoost: boolean) {
         const vectorToBall = new Vector3()
-        const scaleFromPlayer = 500
+        const scaleFromPlayer = 300
         vectorToBall.subVectors(this.carObject.position, ballPosition)
         vectorToBall.setLength(scaleFromPlayer)
         vectorToBall.y += CAMERA_ABOVE_PLAYER
