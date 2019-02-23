@@ -72,7 +72,7 @@ export class ThreeScene extends React.PureComponent<Props> {
         ])
         asyncLoaders
             .then(this.start)
-            .catch((e) => console.error(`There was an error generating Three objects: ${e}`))
+            .catch((e) => new Error(`There was an error generating Three objects: ${e}`))
 
         // Logs framerate
         if (isDevelopment()) {
