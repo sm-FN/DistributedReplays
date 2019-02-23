@@ -1,4 +1,3 @@
-
 /**
  * This clock provides a simple callback system that keeps track of elapsed and delta time
  * transformations. This makes it extremely easy to parse the deltas of a replay by their frame
@@ -47,7 +46,7 @@ export class FPSClock {
     private readonly frameToDuration: number[]
 
     private paused: boolean
-    private animation: NodeJS.Timer
+    private animation?: NodeJS.Timer
     private readonly callback: ((frame: number) => void)[]
 
     constructor(frameToDuration: number[]) {
@@ -57,6 +56,7 @@ export class FPSClock {
         this.deltaQueue = []
         this.elapsedTime = 0
         this.currentFrame = 0
+        this.lastDelta = 0
         this.timeout()
     }
 
@@ -144,7 +144,7 @@ export class FPSClock {
     private timeout(enable: boolean = true) {
         if (enable) {
             this.animation = setInterval(this.update, 1000 / 60)
-        } else {
+        } else if (this.animation) {
             clearInterval(this.animation)
         }
     }

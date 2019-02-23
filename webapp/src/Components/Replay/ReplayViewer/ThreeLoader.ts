@@ -1,6 +1,6 @@
-import { MTLLoader, OBJLoader } from "src/lib"
+import { MTLLoader, OBJLoader } from "../../../lib"
 
-import { BackSide, Group, LoadingManager, Mesh, MeshPhongMaterial } from "three"
+import { BackSide, Group, LoadingManager, Mesh, MeshPhongMaterial, Object3D } from "three"
 
 export class ThreeModelLoader {
     public static Instance(loadingManager: LoadingManager) {
@@ -14,9 +14,9 @@ export class ThreeModelLoader {
 
     private readonly loadingManager: LoadingManager
 
-    private carObject: Group
-    private ballObject: Group
-    private fieldObject: Group
+    private carObject?: Group
+    private ballObject?: Group
+    private fieldObject?: Group
 
     private constructor(loadingManager: LoadingManager) {
         this.loadingManager = loadingManager
@@ -46,7 +46,7 @@ export class ThreeModelLoader {
                 )
             })
         }
-        return this.carObject.clone(true)
+        return this.carObject!.clone(true)
     }
 
     public async getBall() {
@@ -75,7 +75,7 @@ export class ThreeModelLoader {
                 )
             })
         }
-        return this.ballObject.clone(true)
+        return this.ballObject!.clone(true)
     }
 
     public async getField() {
@@ -120,7 +120,8 @@ export class ThreeModelLoader {
                 objectLoader.load(
                     "/assets/shared/models/Field.obj",
                     (field: Group) => {
-                        field.children.map((mesh: Mesh) => {
+                        field.children.map((object: Object3D) => {
+                            const mesh = object as Mesh
                             const cleanMaterial = new MeshPhongMaterial({ color: 0x555555 })
                             cleanMaterial.side = BackSide
                             mesh.material = cleanMaterial
@@ -133,6 +134,6 @@ export class ThreeModelLoader {
                 )
             })
         }
-        return this.fieldObject.clone(true)
+        return this.fieldObject!.clone(true)
     }
 }

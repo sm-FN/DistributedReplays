@@ -1,7 +1,4 @@
 import * as React from "react"
-import { Stats } from "src/lib"
-import { FPSClock } from "src/Models"
-import { isDevelopment } from "src/Utils"
 import {
     AmbientLight,
     AxesHelper,
@@ -16,6 +13,9 @@ import {
     Scene,
     WebGLRenderer
 } from "three"
+import { Stats } from "../../../lib"
+import { FPSClock } from "../../../Models"
+import { isDevelopment } from "../../../Utils"
 import { BALL_NAME, ThreeHelper } from "./ThreeHelper"
 import { ThreeModelLoader } from "./ThreeLoader"
 import { ThreePlayer } from "./ThreePlayer"
@@ -35,10 +35,10 @@ interface FieldScene {
 }
 
 export class ThreeScene extends React.PureComponent<Props> {
-    private loadingManager: LoadingManager
-    private renderer: WebGLRenderer
-    private mount: HTMLDivElement
-    private stats: Stats | null
+    private readonly loadingManager: LoadingManager
+    private readonly renderer: WebGLRenderer
+    private mount: HTMLDivElement | null = null
+    private stats: Stats | null = null
     private hasStarted: boolean
     private activePlayer: number
     private readonly helper: ThreeHelper
@@ -46,14 +46,16 @@ export class ThreeScene extends React.PureComponent<Props> {
 
     constructor(props: Props) {
         super(props)
+        this.loadingManager = new LoadingManager()
+        this.renderer = new WebGLRenderer({ antialias: true })
         this.helper = new ThreeHelper(props.replayData)
         this.threeField = {} as any
         this.addToWindow(this.threeField, "field")
         this.activePlayer = -1
+        this.hasStarted = false
     }
 
     public componentDidMount() {
-        this.loadingManager = new LoadingManager()
         this.loadingManager.onProgress = (item, loaded, total) => {
             // TODO: Show loader animation that prints what is getting loaded and progress
             // console.log(item, loaded, total)
@@ -76,7 +78,9 @@ export class ThreeScene extends React.PureComponent<Props> {
         if (isDevelopment()) {
             this.stats = new Stats()
             this.stats.showPanel(0)
-            this.mount.appendChild(this.stats.dom)
+            if (this.mount) {
+                this.mount.appendChild(this.stats.dom)
+            }
         }
     }
 
@@ -87,10 +91,12 @@ export class ThreeScene extends React.PureComponent<Props> {
 
     public componentWillUnmount() {
         this.stop()
-        if (this.stats) {
-            this.mount.removeChild(this.stats.dom)
+        if (this.mount) {
+            if (this.stats) {
+                this.mount.removeChild(this.stats.dom)
+            }
+            this.mount.removeChild(this.renderer.domElement)
         }
-        this.mount.removeChild(this.renderer.domElement)
         window.removeEventListener("resize", this.updateSize)
     }
 
@@ -100,9 +106,7 @@ export class ThreeScene extends React.PureComponent<Props> {
                 <div
                     style={{ width: "100%", height: "600px", margin: "auto" }}
                     ref={(mount) => {
-                        if (mount) {
-                            this.mount = mount
-                        }
+                        this.mount = mount
                     }}
                 />
                 <div style={{ position: "absolute", top: "0", left: "0", margin: ".5rem" }}>
@@ -158,8 +162,8 @@ export class ThreeScene extends React.PureComponent<Props> {
      * Should be called whenever the canvas dimensions are changed (i.e. window resize).
      */
     private readonly updateSize = () => {
-        const width = this.mount.clientWidth
-        const height = this.mount.clientHeight
+        const width = this.mount ? this.mount.clientWidth : 640
+        const height = this.mount ? this.mount.clientHeight : 480
         this.threeField.camera.aspect = width / height
         this.threeField.camera.updateProjectionMatrix()
         this.renderer.setSize(width, height)
@@ -167,8 +171,8 @@ export class ThreeScene extends React.PureComponent<Props> {
     }
 
     private readonly generateScene = () => {
-        const width = this.mount.clientWidth
-        const height = this.mount.clientHeight
+        const width = this.mount ? this.mount.clientWidth : 640
+        const height = this.mount ? this.mount.clientHeight : 480
 
         // Add scene
         this.threeField.scene = new Scene()
@@ -180,10 +184,10 @@ export class ThreeScene extends React.PureComponent<Props> {
         this.threeField.camera.rotation.x -= (7 * Math.PI) / 180
 
         // Add renderer
-        this.renderer = new WebGLRenderer({ antialias: true })
         this.renderer.setClearColor("#000000")
         this.renderer.setSize(width, height)
-        this.mount.appendChild(this.renderer.domElement)
+        // If we can't render, this will throw an error
+        this.mount!.appendChild(this.renderer.domElement)
     }
 
     private readonly generatePlayfield = async () => {
@@ -255,9 +259,8 @@ export class ThreeScene extends React.PureComponent<Props> {
         for (let i = 0; i < players.length; i++) {
             const name = players[i]
             const orangeTeam = this.props.replayData.colors[i]
-            const player = new ThreePlayer(name, orangeTeam)
             const playerMesh = octane.clone(true)
-            player.init(playerMesh)
+            const player = new ThreePlayer(name, orangeTeam, playerMesh)
 
             // Debugging
             player.carObject.add(new AxesHelper(5))

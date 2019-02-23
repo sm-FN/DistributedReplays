@@ -15,35 +15,22 @@ import { CAR_SUFFIX } from "./ThreeHelper"
 const CAMERA_ABOVE_PLAYER = 200
 
 export class ThreePlayer {
-    public carObject: Group
+    public readonly carObject: Group
 
-    private camera: Camera | null
-    private nameTag: Sprite
+    private camera: Camera | null = null
+    private readonly nameTag: Sprite
     private readonly playerName: string
     private readonly orangeTeam: boolean
 
-    constructor(playerName: string, orangeTeam: boolean) {
+    constructor(playerName: string, orangeTeam: boolean, carObject: Group) {
         this.playerName = playerName
         this.orangeTeam = orangeTeam
+        this.nameTag = this.generateSprite()
+        this.carObject = this.generateCarObject(carObject)
     }
 
     public getName() {
         return this.playerName
-    }
-
-    public init(carObject: Group) {
-        this.setMaterial(carObject)
-
-        const player = new Group()
-        player.name = this.playerName
-        player.add(carObject)
-
-        // Add nametag
-        this.generateSprite()
-        this.nameTag.scale.setScalar(600)
-        player.add(this.nameTag)
-
-        this.carObject = player
     }
 
     public makeActive(camera: Camera) {
@@ -82,6 +69,21 @@ export class ThreePlayer {
             this.carObject.remove(this.camera)
         }
         this.camera = null
+    }
+
+    private generateCarObject(carObject: Group) {
+        this.setMaterial(carObject)
+
+        const player = new Group()
+        player.name = this.playerName
+        player.add(carObject)
+
+        // Add nametag
+        this.generateSprite()
+        this.nameTag.scale.setScalar(600)
+        player.add(this.nameTag)
+
+        return player
     }
 
     private setMaterial(playerMesh: Group) {
@@ -172,7 +174,6 @@ export class ThreePlayer {
         const spriteMaterial = new SpriteMaterial({
             map: texture
         })
-        const sprite = new Sprite(spriteMaterial)
-        this.nameTag = sprite
+        return new Sprite(spriteMaterial)
     }
 }

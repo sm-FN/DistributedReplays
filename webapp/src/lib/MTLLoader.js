@@ -1,5 +1,4 @@
 /* eslint-disable */
-
 "use strict"
 const THREE = require("three")
 
@@ -8,7 +7,7 @@ const THREE = require("three")
  *
  * @author angelxuanchang
  */
-const MTLLoader = function() {
+export const MTLLoader = (function() {
     const MTLLoader = function(manager) {
         this.manager = manager !== undefined ? manager : THREE.DefaultLoadingManager
     }
@@ -464,8 +463,4 @@ const MTLLoader = function() {
         }
     }
     return MTLLoader
-}()
-
-module.exports = {
-    MTLLoader
-}
+})()
