@@ -8,7 +8,7 @@ import {
 } from "@material-ui/core"
 import Slider from "@material-ui/lab/Slider"
 import * as React from "react"
-import { FPSClock, Replay } from "src/Models"
+import { FPSClock, Replay } from "../../../Models"
 import { getReplayViewerData, getReplayViewerProto } from "../../../Requests/Replay"
 import { ReplayControls } from "./ReplayControls"
 import { Scoreboard } from "./Scoreboard"

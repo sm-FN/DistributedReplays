@@ -1,5 +1,6 @@
-import * as moment from "moment"
-import * as qs from "qs"
+import moment from "moment"
+import qs from "qs"
+import { doGet } from "../apiHandler/apiHandler"
 import {
     BasicStat,
     GameMode,
@@ -8,8 +9,7 @@ import {
     Replay,
     ReplaysSearchQueryParams,
     stringifyReplaySearchQueryParam
-} from "src/Models"
-import { doGet } from "../apiHandler/apiHandler"
+} from "../Models"
 import { useMockData } from "./Config"
 
 export const getReplay = (id: string): Promise<Replay> => {
@@ -195,4 +195,8 @@ export const searchReplays = (queryParams: ReplaysSearchQueryParams): Promise<Ma
 
 export const getExplanations = (): Promise<any> => {
     return doGet("/stats/explanations")
+}
+
+export const getPredictedRanks = (id: string): Promise<any> => {
+    return doGet(`/replay/${id}/predict`)
 }
