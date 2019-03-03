@@ -262,8 +262,10 @@ def download_replay(id_):
 
 @bp.route('replay/<id_>/predict')
 def api_predict_ranks(id_):
-    ranks = PredictedRank.create_from_id(id_)
-    return better_jsonify(ranks)
+    if RankPredictionAPI is None:
+        return "Module not loaded", 404
+    ranks = RankPredictionAPI.create_from_id(id_)
+    return jsonify(ranks)
 
 
 @bp.route('/replay')
