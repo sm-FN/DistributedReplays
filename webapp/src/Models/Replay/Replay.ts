@@ -7,14 +7,22 @@ interface GameScore {
     team1Score: number
 }
 
+export enum GameVisibility {
+    DEFAULT = 0,
+    PUBLIC = 1,
+    PRIVATE = 2
+}
+
 export interface Replay {
     id: string
     name: string
     date: moment.Moment
+    map: string
     gameMode: GameMode
     gameScore: GameScore
     players: ReplayPlayer[]
-    tags: Tag[]
+    tags: Tag[],
+    visibility: GameVisibility
 }
 
 export const parseReplay = (data: any) => {

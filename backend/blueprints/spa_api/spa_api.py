@@ -11,22 +11,18 @@ from carball.analysis.utils.proto_manager import ProtobufManager
 from flask import jsonify, Blueprint, current_app, request, send_from_directory
 from werkzeug.utils import secure_filename, redirect
 
-
+from backend.blueprints.spa_api.service_layers.replay.predicted_ranks import PredictedRank
+from backend.blueprints.spa_api.service_layers.replay.visibility import ReplayVisibility
 
 try:
     import config
 except ImportError:
     config = None
 
-try:
-    from backend.blueprints.spa_api.service_layers.ml.ml import RankPredictionAPI
-except ModuleNotFoundError:
-    RankPredictionAPI = None
-    print("Not using ML because required packages are not installed. Run `pip install -r requirements-ml.txt` to use ML.")
 from backend.blueprints.spa_api.service_layers.stat import get_explanations
 from backend.blueprints.spa_api.service_layers.utils import with_session
 from backend.blueprints.steam import get_vanity_to_steam_id_or_random_response, steam_id_to_profile
-from backend.database.objects import Game
+from backend.database.objects import Game, GameVisibilitySetting
 from backend.database.utils.utils import add_objects
 from backend.database.wrapper.chart.chart_data import convert_to_csv
 from backend.database.wrapper.stats.player_stat_wrapper import TimeUnit
@@ -136,6 +132,7 @@ def api_get_player_ranks(id_):
 
 @bp.route('player/<id_>/play_style')
 def api_get_player_play_style(id_):
+    # TODO: Use get_query_params
     if 'rank' in request.args:
         rank = int(request.args['rank'])
     else:
@@ -265,10 +262,8 @@ def download_replay(id_):
 
 @bp.route('replay/<id_>/predict')
 def api_predict_ranks(id_):
-    if RankPredictionAPI is None:
-        return 404, "Module not loaded"
-    ranks = RankPredictionAPI.create_from_id(id_)
-    return jsonify(ranks)
+    ranks = PredictedRank.create_from_id(id_)
+    return better_jsonify(ranks)
 
 
 @bp.route('/replay')
@@ -291,6 +286,18 @@ def api_search_replays():
     return better_jsonify(match_history)
 
 
+@bp.route('replay/<id_>/visibility/<visibility>', methods=['PUT'])
+def api_update_replay_visibility(id_: str, visibility: str):
+    try:
+        visibility_setting = GameVisibilitySetting(int(visibility))
+    except Exception as e:
+        logger.error(e)
+        return "Visibility setting not provided or incorrect", 400
+
+    replay_visibiltiy = ReplayVisibility.change_replay_visibility(game_hash=id_, visibility=visibility_setting)
+    return better_jsonify(replay_visibiltiy)
+
+
 ## Other
 
 @bp.route('/stats/explanations')
@@ -300,6 +307,19 @@ def api_get_stat_explanations():
 
 @bp.route('/upload', methods=['POST'])
 def api_upload_replays():
+    # TODO (sciguymjm): Create endpoint/query param for private replay upload
+    # that adds an entry to the GameVisibility table for the replay
+    accepted_query_params = [
+        QueryParam(name='player_id', optional=True, type_=str),
+        QueryParam(name='visibility', optional=True, type_=lambda param: GameVisibilitySetting(int(param))),
+    ]
+    query_params = get_query_params(accepted_query_params, request)
+    if "visibility" in query_params or "player_id" in query_params:
+        if "visibility" not in query_params:
+            return MissingQueryParams(["visibility"])
+        elif "player_id" not in query_params:
+            return MissingQueryParams(["player_id"])
+
     uploaded_files = request.files.getlist("replays")
     logger.info(f"Uploaded files: {uploaded_files}")
     if uploaded_files is None or 'replays' not in request.files or len(uploaded_files) == 0:
@@ -319,9 +339,9 @@ def api_upload_replays():
         file.save(filename)
         lengths = get_queue_length()  # priority 0,3,6,9
         if lengths[1] > 1000:
-            result = celery_tasks.parse_replay_gcp(os.path.abspath(filename))
+            result = celery_tasks.parse_replay_gcp(os.path.abspath(filename))  # TODO: Add queryparams support
         else:
-            result = celery_tasks.parse_replay_task.delay(os.path.abspath(filename))
+            result = celery_tasks.parse_replay_task.delay(os.path.abspath(filename, **query_params))
         task_ids.append(result.id)
     return jsonify(task_ids), 202
 
