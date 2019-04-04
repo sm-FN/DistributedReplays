@@ -118,7 +118,7 @@ export class ThreeModelLoader {
                 const objectLoader = new OBJLoader(this.loadingManager)
                 // objectLoader.setMaterials(mc)
                 objectLoader.load(
-                    "/assets/shared/models/Field.obj",
+                    "/assets/shared/models/Field2.obj",
                     (field: Group) => {
                         field.children.map((object: Object3D) => {
                             const mesh = object as Mesh
