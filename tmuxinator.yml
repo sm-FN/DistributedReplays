@@ -11,22 +11,23 @@
 name: calculated
 
 windows:
-  - frontend_api:
-      layout: even-horizontal
-      panes:
-        - webapp:
-          - cd webapp
-          - npm start
-        - rlbot_server:
-          - source env/bin/activate
-          - python RLBotServer.py
-  - backend:
-      layout: main-vertical
-      panes:
-        - celery:
-          - source env/bin/activate
-          - celery -A backend.tasks.celery_tasks.celery worker --pool=solo -l info
-        - flower:
-          - source env/bin/activate
-          - flower --port=5555
-        - redis/redis-server.exe
+    - frontend_api:
+          layout: even-horizontal
+          panes:
+              - webapp:
+                    - cd webapp
+                    - npm start
+              - rlbot_server:
+                    - source env/bin/activate
+                    - export FLASK_ENV=development
+                    - python RLBotServer.py
+    - backend:
+          layout: main-vertical
+          panes:
+              - celery:
+                    - source env/bin/activate
+                    - celery -A backend.tasks.celery_tasks.celery worker --pool=solo -l info
+              - flower:
+                    - source env/bin/activate
+                    - flower --port=5555
+              - redis/redis-server.exe
