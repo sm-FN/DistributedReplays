@@ -2,152 +2,155 @@ import {
     Dialog,
     DialogContent,
     DialogTitle,
-    Divider,
+    FormControlLabel,
     Grid,
     IconButton,
-    ListItemIcon,
-    ListItemText,
-    Menu,
-    MenuItem,
     Switch,
-    withWidth
+    Tooltip
 } from "@material-ui/core"
-import {isWidthUp, WithWidth} from "@material-ui/core/withWidth"
 import CompareArrows from "@material-ui/icons/CompareArrows"
-import Info from "@material-ui/icons/Info"
-import MoreVert from "@material-ui/icons/MoreVert"
+import Edit from "@material-ui/icons/Edit"
+import Help from "@material-ui/icons/Help"
 import * as React from "react"
-import {Link} from "react-router-dom"
-import {PLAYER_COMPARE_WITH_LINK} from "../../../../Globals"
-import {PlaylistSelect} from "../../../Shared/Selects/PlaylistSelect"
-import {PlayStyleExplanationTable} from "./PlayStyleExplanationTable"
+import { Link } from "react-router-dom"
+import { EXPLANATIONS_LINK, PLAYER_COMPARE_WITH_LINK } from "../../../../Globals"
+import { LinkButton } from "../../../Shared/LinkButton"
+import { PlaylistSelect } from "../../../Shared/Selects/PlaylistSelect"
+import { PlayStyleEdit } from "./PlayStyleEdit"
 
 interface OwnProps {
     player: Player
-    playlist: number
-    winLossMode: boolean
+    useFullSizeCompareButton?: boolean
     handlePlaylistChange?: (playlist: number) => void
     handleWinsLossesChange?: (winLossMode: boolean) => void
+    handleChartChange?: () => void
 }
 
-type Props = OwnProps & WithWidth
+type Props = OwnProps
 
-interface MenuState {
-    menuOpen: boolean
-    anchorElement?: HTMLElement
-}
-
-interface ActionsState {
+interface State {
     dialogOpen: boolean
+    playlist: number
+    winLossMode: boolean
 }
 
-type State = MenuState & ActionsState
-
-class PlayStyleActionsComponent extends React.PureComponent<Props, State> {
+export class PlayStyleActions extends React.PureComponent<Props, State> {
     constructor(props: Props) {
         super(props)
-        this.state = {
-            menuOpen: false,
-            dialogOpen: false
-        }
+        this.state = {dialogOpen: false, playlist: 13, winLossMode: false}
     }
 
     public render() {
-        const playlistSelect = (
+        const compareButton = this.props.useFullSizeCompareButton ? (
+            <LinkButton icon={CompareArrows} iconType="mui"
+                        to={PLAYER_COMPARE_WITH_LINK(this.props.player.id)}>
+                Compare
+            </LinkButton>
+        ) : (
+            <Link to={PLAYER_COMPARE_WITH_LINK(this.props.player.id)}>
+                <Tooltip title="Compare with...">
+                    <IconButton style={{marginRight: 8, top: -3}}>
+                        <CompareArrows/>
+                    </IconButton>
+                </Tooltip>
+            </Link>
+        )
+        const dropDown = (
             <PlaylistSelect
-                selectedPlaylist={this.props.playlist}
+                selectedPlaylist={this.state.playlist}
                 handleChange={this.handlePlaylistsChange}
-                inputLabel=""
-                helperText=""
+                inputLabel="Playlist"
+                helperText="Select playlist to use"
                 dropdownOnly
                 currentPlaylistsOnly
-                multiple={false}
+                multiple={false}/>
+        )
+
+        const toggleWinsLosses = (
+            <FormControlLabel
+                control={<Switch onChange={this.handleWinsLossesChange}/>}
+                label="Wins/Losses mode"
             />
         )
 
-        const explanationsDialog = (
-            <Dialog open={this.state.dialogOpen} onClose={this.handleExplanationsClose} scroll="paper">
-                <DialogTitle>Explanation of terms</DialogTitle>
-                <DialogContent>
-                    <PlayStyleExplanationTable />
-                </DialogContent>
-            </Dialog>
+        const editSpiderCharts = (
+            <IconButton onClick={this.handleOpen}>
+                <Edit/>
+            </IconButton>
         )
-
-        const isAboveMd = isWidthUp("md", this.props.width)
-
+        const whatAreTheseStats = (
+            <Link to={EXPLANATIONS_LINK}>
+                <IconButton>
+                    <Help/>
+                </IconButton>
+            </Link>
+        )
         return (
-            <Grid container justify="flex-end">
-                {isAboveMd && <Grid item>{playlistSelect}</Grid>}
-                <Grid item style={{margin: isAboveMd ? "auto" : undefined}}>
-                    <IconButton onClick={this.handleOpen} style={{marginRight: 8}}>
-                        <MoreVert />
-                    </IconButton>
+            <Grid container justify="center" spacing={8}>
+                <Grid item xs="auto" style={{margin: "auto"}}>
+                    {toggleWinsLosses}
                 </Grid>
-                <Menu open={this.state.menuOpen} anchorEl={this.state.anchorElement} onClose={this.handleClose}>
-                    <MenuItem onClick={this.handleExplanationsOpen}>
-                        <ListItemIcon>
-                            <Info />
-                        </ListItemIcon>
-                        <ListItemText primary="Stats explanations" />
-                    </MenuItem>
-                    <Link to={PLAYER_COMPARE_WITH_LINK(this.props.player.id)} style={{textDecoration: "none"}}>
-                        <MenuItem>
-                            <ListItemIcon>
-                                <CompareArrows />
-                            </ListItemIcon>
-                            <ListItemText primary="Compare with other players" />
-                        </MenuItem>
-                    </Link>
-                    <Divider component="li" />
-                    {!isAboveMd && <MenuItem style={{justifyContent: "center"}}>{playlistSelect}</MenuItem>}
-                    <MenuItem onClick={this.toggleWinsLossesMode}>
-                        <ListItemIcon>
-                            <Switch checked={this.props.winLossMode} />
-                        </ListItemIcon>
-                        <ListItemText primary="Wins/Losses mode" />
-                    </MenuItem>
-                </Menu>
+                <Grid item xs="auto" style={{margin: "auto"}}>
+                    {dropDown}
+                </Grid>
+                <Grid item xs="auto" style={{margin: "auto"}}>
+                    {compareButton}
+                </Grid>
+                <Grid item xs="auto" style={{margin: "auto"}}>
+                    {whatAreTheseStats}
+                </Grid>
+                {/*<Grid item xs="auto" style={{margin: "auto"}}>*/}
+                {/*<Button variant="outlined"*/}
+                {/*onClick={this.handleOpen}*/}
+                {/*style={{marginRight: 8, height: "100%"}}*/}
+                {/*>*/}
+                {/*What are these stats?*/}
+                {/*</Button>*/}
+                {/*</Grid>*/}
+                <Grid item xs="auto" style={{margin: "auto"}}>
+                    {editSpiderCharts}
+                </Grid>
 
-                {explanationsDialog}
+                <Dialog open={this.state.dialogOpen}
+                        onClose={this.handleClose}
+                        scroll="paper"
+                >
+                    <DialogTitle>Edit charts</DialogTitle>
+                    <DialogContent>
+                        <PlayStyleEdit onUpdate={this.onChartUpdate}/>
+                    </DialogContent>
+                </Dialog>
             </Grid>
         )
     }
 
-    private readonly handleOpen: React.MouseEventHandler<HTMLElement> = (event) => {
-        this.setState({
-            menuOpen: true,
-            anchorElement: event.currentTarget
-        })
-    }
-
-    private readonly handleClose = () => {
-        this.setState({
-            menuOpen: false,
-            anchorElement: undefined
-        })
-    }
-
-    private readonly handleExplanationsOpen = () => {
+    private readonly handleOpen = () => {
         this.setState({dialogOpen: true})
     }
 
-    private readonly handleExplanationsClose = () => {
+    private readonly handleClose = () => {
         this.setState({dialogOpen: false})
     }
 
+    private readonly onChartUpdate = () => {
+        this.handleClose()
+        if (this.props.handleChartChange) {
+            this.props.handleChartChange()
+        }
+    }
+
     private readonly handlePlaylistsChange: React.ChangeEventHandler<HTMLSelectElement> = (event) => {
-        const selectedPlaylist = (event.target.value as any) as number
+        const selectedPlaylist = event.target.value as any as number
+        this.setState({playlist: selectedPlaylist})
         if (this.props.handlePlaylistChange) {
             this.props.handlePlaylistChange(selectedPlaylist)
         }
     }
 
-    private readonly toggleWinsLossesMode: React.MouseEventHandler = () => {
+    private readonly handleWinsLossesChange = (event: React.ChangeEvent<HTMLInputElement>, winLossMode: boolean) => {
+        this.setState({winLossMode})
         if (this.props.handleWinsLossesChange) {
-            this.props.handleWinsLossesChange(!this.props.winLossMode)
+            this.props.handleWinsLossesChange(winLossMode)
         }
     }
 }
-
-export const PlayStyleActions = withWidth()(PlayStyleActionsComponent)

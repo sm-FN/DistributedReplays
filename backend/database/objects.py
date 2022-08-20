@@ -1,15 +1,12 @@
 # ORM objects
 import datetime
 import enum
-import uuid
 
-from sqlalchemy import Column, Integer, String, Boolean, Float, ForeignKey, DateTime, Enum, UniqueConstraint, \
-    ForeignKeyConstraint, JSON, Index, func, Sequence
+from sqlalchemy import Column, Integer, String, Boolean, Float, ForeignKey, DateTime, Enum, Table, UniqueConstraint
 from sqlalchemy.dialects import postgresql
+from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, validates
-from sqlalchemy.orm import remote, foreign
-from sqlalchemy_utils import LtreeType, Ltree
 
 DBObjectBase = declarative_base()
 
@@ -28,14 +25,7 @@ class MatchType(enum.Enum):
     public = 3
 
 
-class ReplayResult(enum.Enum):
-    SUCCESS = 1
-    ERROR = 2
-    UNKNOWN = 3
-
-
 class Playlist(enum.Enum):
-    UNKNOWN_CUSTOM = 0
     UNRANKED_DUELS = 1
     UNRANKED_DOUBLES = 2
     UNRANKED_STANDARD = 3
@@ -52,17 +42,6 @@ class Playlist(enum.Enum):
     RANKED_RUMBLE = 28
     RANKED_DROPSHOT = 29
     RANKED_SNOW_DAY = 30
-
-
-class GameVisibilitySetting(enum.Enum):
-    DEFAULT = 0  # i.e. Unset
-    PUBLIC = 1
-    PRIVATE = 2
-
-
-class GroupEntryType(enum.Enum):
-    group = 0
-    game = 1
 
 
 class User(DBObjectBase):
@@ -109,17 +88,13 @@ class Model(DBObjectBase):
 
 class PlayerGame(DBObjectBase):
     __tablename__ = 'playergames'
-    __table_args__ = (UniqueConstraint('player', 'game', name='unique_component_commit'),)
+
     id = Column(Integer, primary_key=True)
     name = Column(String(100))
     player = Column(String(40), ForeignKey('players.platformid'), index=True)
     player_object = relationship('Player', foreign_keys=[player])
     game = Column(String(40), ForeignKey('games.hash'), index=True)
     game_object = relationship("Game", foreign_keys=[game])
-    loadout_object = relationship("Loadout",
-                                  primaryjoin="and_(Loadout.player == PlayerGame.player,"
-                                              " Loadout.game == PlayerGame.game)")
-
     rank = Column(Integer)
     division = Column(Integer, default=0)
     mmr = Column(Integer)
@@ -135,7 +110,7 @@ class PlayerGame(DBObjectBase):
 
     # camera stuff
     field_of_view = Column(Integer)
-    transition_speed = Column(Float)
+    transition_speed = Column(Integer)
     pitch = Column(Integer)
     swivel_speed = Column(Integer)
     stiffness = Column(Float)
@@ -232,38 +207,6 @@ class PlayerGame(DBObjectBase):
         return value
 
 
-class Loadout(DBObjectBase):
-    __tablename__ = 'loadouts'
-    id = Column(Integer, primary_key=True, autoincrement=True)
-
-    player = Column(String(40), index=True)
-    game = Column(String(40), index=True)
-    _pgs = ForeignKeyConstraint((player, game), ('playergames.player', 'playergames.game'))
-    load_out_id = Column(Integer)
-    banner = Column(Integer)
-    boost = Column(Integer)
-    car = Column(Integer)
-    goal_explosion = Column(Integer)
-    skin = Column(Integer)
-    trail = Column(Integer)
-    wheels = Column(Integer)
-    version = Column(Integer)
-    topper = Column(Integer)
-    antenna = Column(Integer)
-    engine_audio = Column(Integer)
-
-    # Paints
-    banner_paint = Column(Integer)
-    boost_paint = Column(Integer)
-    car_paint = Column(Integer)
-    goal_explosion_paint = Column(Integer)
-    skin_paint = Column(Integer)
-    trail_paint = Column(Integer)
-    wheels_paint = Column(Integer)
-    topper_paint = Column(Integer)
-    antenna_paint = Column(Integer)
-
-
 class Game(DBObjectBase):
     __tablename__ = 'games'
     hash = Column(String(40), primary_key=True)  # replayid
@@ -283,15 +226,6 @@ class Game(DBObjectBase):
     team0possession = Column(Float)
     team1possession = Column(Float)
     frames = Column(Integer)
-    visibility = Column(Enum(GameVisibilitySetting), default=GameVisibilitySetting.DEFAULT)
-    # to update the DB
-    # ALTER TABLE GAMES
-    # ADD COLUMN primary_player VARCHAR(40) NULL;
-    primary_player = Column(String(40))
-    # to update the DB
-    # ALTER TABLE games
-    # ADD COLUMN visibility gamevisibilitysetting NULL
-    # CONSTRAINT default_visibility DEFAULT 'DEFAULT';
 
     tags = relationship('Tag', secondary='game_tags', back_populates='games')
 
@@ -334,7 +268,7 @@ class CameraSettings(DBObjectBase):
     __tablename__ = 'camera_settings'
     id = Column(Integer, primary_key=True, autoincrement=True)
     field_of_view = Column(Integer)
-    transition_speed = Column(Float)
+    transition_speed = Column(Integer)
     pitch = Column(Integer)
     swivel_speed = Column(Integer)
     stiffness = Column(Float)
@@ -379,7 +313,6 @@ class Tag(DBObjectBase):
     name = Column(String(40))
     owner = Column(String(40), ForeignKey('players.platformid'), index=True)
     games = relationship('Game', secondary='game_tags', back_populates='tags')
-    private_id = Column(String(40), nullable=True)
     __table_args_ = (UniqueConstraint(name, owner, name='unique_names'))
 
 
@@ -389,80 +322,19 @@ class GameTag(DBObjectBase):
     tag_id = Column(Integer, ForeignKey('tags.id'), primary_key=True)
 
 
-class GameVisibility(DBObjectBase):
-    __tablename__ = "game_visibility"
+# User settings
+
+class Settings(DBObjectBase):
+    @classmethod
+    def create(cls, key, value, user):
+        settings = Settings()
+        settings.key = key
+        settings.value = value
+        settings.user = user
+        return settings
+
+    __tablename__ = 'settings'
     id = Column(Integer, primary_key=True, autoincrement=True)
-    game = Column(String(40), ForeignKey('games.hash'), index=True)
-    player = Column(String(40), ForeignKey('players.platformid'))
-    visibility = Column(Enum(GameVisibilitySetting))
-    release_date = Column(DateTime, default=datetime.datetime.max)
-
-
-class TrainingPack(DBObjectBase):
-    __tablename__ = "training_packs"
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    guid = Column(String(40))
-    task_id = Column(String(37))
-    name = Column(String(100))
-    player = Column(String(40), ForeignKey('players.platformid'), index=True)
-    pack_player = Column(String(40), ForeignKey('players.platformid'), index=True)
-    shots = Column(JSON)
-    creation_date = Column(DateTime, default=datetime.datetime.utcnow)
-    # ALTER TABLE training_packs
-    #     ADD COLUMN name        VARCHAR(100),
-    #     ADD COLUMN pack_player VARCHAR(40),
-    #     ADD COLUMN task_id VARCHAR(37);
-
-
-class ReplayLog(DBObjectBase):
-    __tablename__ = "replay_logs"
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    uuid = Column(String(36))
-    result = Column(Enum(ReplayResult))
-    error_type = Column(String(40))
-    log = Column(String)
-    params = Column(String, default=None)
-    game = Column(String(40), default=None)
-    date = Column(DateTime, default=datetime.datetime.utcnow)
-
-
-id_seq = Sequence('nodes_id_seq')
-
-
-class GroupEntry(DBObjectBase):
-    __tablename__ = "replay_groups"
-    id = Column(Integer, id_seq, primary_key=True)
-    uuid = Column(String(36))
-    owner = Column(String(40), ForeignKey('players.platformid'))
-    name = Column(String(250))
-    game = Column(String(40))
-    path = Column(LtreeType, nullable=False)
-    type = Column(Enum(GroupEntryType))
-    parent = relationship(
-        'GroupEntry',
-        primaryjoin=remote(path) == foreign(func.subpath(path, 0, -1)),
-        backref='children',
-        viewonly=True,
-    )
-    date = Column(DateTime, default=datetime.datetime.utcnow)
-
-    __table_args__ = (
-        Index('ix_nodes_path', path, postgresql_using="gist"),
-    )
-
-    def __init__(self, *args, **kwargs):
-        engine = kwargs['engine']
-        del kwargs['engine']
-        super().__init__(*args, **kwargs)
-        _id = engine.execute(id_seq)
-        self.id = _id
-        self.uuid = uuid.uuid4()
-        parent = kwargs['parent'] if 'parent' in kwargs else None
-        ltree_id = Ltree(str(self.id))
-        self.path = ltree_id if parent is None else parent.path + ltree_id
-
-    def __str__(self):
-        return self.uuid
-
-    def __repr__(self):
-        return 'Node({})'.format(self.uuid)
+    key = Column(String(40))
+    value = Column(JSON)
+    user = Column(String(40), ForeignKey('players.platformid'), index=True)
